@@ -65,7 +65,10 @@ where
 {
     /// Create an NBT Decoder from a given `io::Read` source.
     pub fn new(src: R, config: Config) -> Self {
-        Decoder { config, reader: src }
+        Decoder {
+            config,
+            reader: src,
+        }
     }
 }
 

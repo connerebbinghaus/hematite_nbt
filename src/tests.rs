@@ -264,14 +264,18 @@ fn nbt_compression() {
 
     // Test zlib encoding/decoding.
     let mut zlib_dst = Vec::new();
-    nbt.to_zlib_writer(&mut zlib_dst, &Default::default()).unwrap();
-    let zlib_file = Blob::from_zlib_reader(&mut io::Cursor::new(zlib_dst), &Default::default()).unwrap();
+    nbt.to_zlib_writer(&mut zlib_dst, &Default::default())
+        .unwrap();
+    let zlib_file =
+        Blob::from_zlib_reader(&mut io::Cursor::new(zlib_dst), &Default::default()).unwrap();
     assert_eq!(&nbt, &zlib_file);
 
     // Test gzip encoding/decoding.
     let mut gzip_dst = Vec::new();
-    nbt.to_gzip_writer(&mut gzip_dst, &Default::default()).unwrap();
-    let gz_file = Blob::from_gzip_reader(&mut io::Cursor::new(gzip_dst), &Default::default()).unwrap();
+    nbt.to_gzip_writer(&mut gzip_dst, &Default::default())
+        .unwrap();
+    let gz_file =
+        Blob::from_gzip_reader(&mut io::Cursor::new(gzip_dst), &Default::default()).unwrap();
     assert_eq!(&nbt, &gz_file);
 }
 

@@ -17,7 +17,12 @@ use crate::config::Config;
 /// Encode `value` in Named Binary Tag format to the given `io::Write`
 /// destination, with an optional header.
 #[inline]
-pub fn to_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>, config: Config) -> Result<()>
+pub fn to_writer<'a, W, T>(
+    dst: &mut W,
+    value: &T,
+    header: Option<&'a str>,
+    config: Config,
+) -> Result<()>
 where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
@@ -28,7 +33,12 @@ where
 
 /// Encode `value` in Named Binary Tag format to the given `io::Write`
 /// destination, with an optional header.
-pub fn to_gzip_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>, config: Config) -> Result<()>
+pub fn to_gzip_writer<'a, W, T>(
+    dst: &mut W,
+    value: &T,
+    header: Option<&'a str>,
+    config: Config,
+) -> Result<()>
 where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
@@ -39,12 +49,21 @@ where
 
 /// Encode `value` in Named Binary Tag format to the given `io::Write`
 /// destination, with an optional header.
-pub fn to_zlib_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>, config: Config) -> Result<()>
+pub fn to_zlib_writer<'a, W, T>(
+    dst: &mut W,
+    value: &T,
+    header: Option<&'a str>,
+    config: Config,
+) -> Result<()>
 where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
 {
-    let mut encoder = Encoder::new(ZlibEncoder::new(dst, Compression::default()), header, config);
+    let mut encoder = Encoder::new(
+        ZlibEncoder::new(dst, Compression::default()),
+        header,
+        config,
+    );
     value.serialize(&mut encoder)
 }
 
@@ -66,7 +85,11 @@ where
 {
     /// Create an encoder with optional `header` from a given Writer.
     pub fn new(writer: W, header: Option<&'a str>, config: Config) -> Self {
-        Encoder { config, writer, header }
+        Encoder {
+            config,
+            writer,
+            header,
+        }
     }
 
     /// Write the NBT tag and an optional header to the underlying writer.
@@ -75,7 +98,9 @@ where
         raw::write_bare_byte(&mut self.writer, tag, &self.config)?;
         match header {
             None => raw::write_bare_short(&mut self.writer, 0, &self.config).map_err(From::from),
-            Some(h) => raw::write_bare_string(&mut self.writer, h, &self.config).map_err(From::from),
+            Some(h) => {
+                raw::write_bare_string(&mut self.writer, h, &self.config).map_err(From::from)
+            }
         }
     }
 }
@@ -338,12 +363,14 @@ where
 
     #[inline]
     fn serialize_f64(self, value: f64) -> Result<()> {
-        raw::write_bare_double(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
+        raw::write_bare_double(&mut self.outer.writer, value, &self.outer.config)
+            .map_err(From::from)
     }
 
     #[inline]
     fn serialize_str(self, value: &str) -> Result<()> {
-        raw::write_bare_string(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
+        raw::write_bare_string(&mut self.outer.writer, value, &self.outer.config)
+            .map_err(From::from)
     }
 
     #[inline]

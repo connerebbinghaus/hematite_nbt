@@ -11,8 +11,8 @@ use nbt::Result;
 fn run() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     let mut config: nbt::Config = Default::default();
-    
-    if let Some("-l") = args.first().map(|s | s as &str) {
+
+    if let Some("-l") = args.first().map(|s| s as &str) {
         config.little_endian = true;
     }
 

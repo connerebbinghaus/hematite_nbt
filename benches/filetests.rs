@@ -55,7 +55,9 @@ where
     });
     group.bench_function("Serialize As Blob", |b| {
         b.iter(|| {
-            nbt_blob.to_writer(&mut io::sink(), &Default::default()).unwrap();
+            nbt_blob
+                .to_writer(&mut io::sink(), &Default::default())
+                .unwrap();
         })
     });
     group.finish();

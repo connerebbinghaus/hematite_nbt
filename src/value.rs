@@ -1,4 +1,4 @@
-use crate::{Map, config::Config};
+use crate::{config::Config, Map};
 use std::fmt;
 use std::io;
 

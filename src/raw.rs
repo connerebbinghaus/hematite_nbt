@@ -120,7 +120,7 @@ where
         for &v in value {
             dst.write_i32::<BigEndian>(v)?;
         }
-    }    
+    }
     Ok(())
 }
 
