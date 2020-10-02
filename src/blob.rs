@@ -1,4 +1,4 @@
-use crate::Map;
+use crate::{config::Config, Map};
 use std::fmt;
 use std::io;
 use std::ops::Index;
@@ -33,7 +33,7 @@ use value::Value;
 ///
 /// // Write a compressed binary representation to a byte array.
 /// let mut dst = Vec::new();
-/// nbt.to_zlib_writer(&mut dst).unwrap();
+/// nbt.to_zlib_writer(&mut dst, &Default::default()).unwrap();
 /// ```
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Blob {
@@ -62,18 +62,18 @@ impl Blob {
     }
 
     /// Extracts an `Blob` object from an `io::Read` source.
-    pub fn from_reader<R>(src: &mut R) -> Result<Blob>
+    pub fn from_reader<R>(src: &mut R, config: &Config) -> Result<Blob>
     where
         R: io::Read,
     {
-        let (tag, title) = raw::emit_next_header(src)?;
+        let (tag, title) = raw::emit_next_header(src, config)?;
         // Although it would be possible to read NBT format files composed of
         // arbitrary objects using the current API, by convention all files
         // have a top-level Compound.
         if tag != 0x0a {
             return Err(Error::NoRootCompound);
         }
-        let content = Value::from_reader(tag, src)?;
+        let content = Value::from_reader(tag, src, config)?;
         match content {
             Value::Compound(map) => Ok(Blob {
                 title,
@@ -85,56 +85,56 @@ impl Blob {
 
     /// Extracts an `Blob` object from an `io::Read` source that is
     /// compressed using the Gzip format.
-    pub fn from_gzip_reader<R>(src: &mut R) -> Result<Blob>
+    pub fn from_gzip_reader<R>(src: &mut R, config: &Config) -> Result<Blob>
     where
         R: io::Read,
     {
         // Reads the gzip header, and fails if it is incorrect.
         let mut data = GzDecoder::new(src);
-        Blob::from_reader(&mut data)
+        Blob::from_reader(&mut data, config)
     }
 
     /// Extracts an `Blob` object from an `io::Read` source that is
     /// compressed using the zlib format.
-    pub fn from_zlib_reader<R>(src: &mut R) -> Result<Blob>
+    pub fn from_zlib_reader<R>(src: &mut R, config: &Config) -> Result<Blob>
     where
         R: io::Read,
     {
-        Blob::from_reader(&mut ZlibDecoder::new(src))
+        Blob::from_reader(&mut ZlibDecoder::new(src), config)
     }
 
     /// Writes the binary representation of this `Blob` to an `io::Write`
     /// destination.
-    pub fn to_writer<W>(&self, mut dst: &mut W) -> Result<()>
+    pub fn to_writer<W>(&self, mut dst: &mut W, config: &Config) -> Result<()>
     where
         W: io::Write,
     {
         dst.write_u8(0x0a)?;
-        raw::write_bare_string(&mut dst, &self.title)?;
+        raw::write_bare_string(&mut dst, &self.title, config)?;
         for (name, ref nbt) in self.content.iter() {
             dst.write_u8(nbt.id())?;
-            raw::write_bare_string(&mut dst, name)?;
-            nbt.to_writer(&mut dst)?;
+            raw::write_bare_string(&mut dst, name, config)?;
+            nbt.to_writer(&mut dst, config)?;
         }
-        raw::close_nbt(&mut dst)
+        raw::close_nbt(&mut dst, config)
     }
 
     /// Writes the binary representation of this `Blob`, compressed using
     /// the Gzip format, to an `io::Write` destination.
-    pub fn to_gzip_writer<W>(&self, dst: &mut W) -> Result<()>
+    pub fn to_gzip_writer<W>(&self, dst: &mut W, config: &Config) -> Result<()>
     where
         W: io::Write,
     {
-        self.to_writer(&mut GzEncoder::new(dst, Compression::default()))
+        self.to_writer(&mut GzEncoder::new(dst, Compression::default()), config)
     }
 
     /// Writes the binary representation of this `Blob`, compressed using
     /// the Zlib format, to an `io::Write` dst.
-    pub fn to_zlib_writer<W>(&self, dst: &mut W) -> Result<()>
+    pub fn to_zlib_writer<W>(&self, dst: &mut W, config: &Config) -> Result<()>
     where
         W: io::Write,
     {
-        self.to_writer(&mut ZlibEncoder::new(dst, Compression::default()))
+        self.to_writer(&mut ZlibEncoder::new(dst, Compression::default()), config)
     }
 
     /// Insert an `Value` with a given name into this `Blob` object. This

@@ -10,12 +10,18 @@ use nbt::Result;
 
 fn run() -> Result<()> {
     let args: Vec<String> = env::args().collect();
+    let mut config: nbt::Config = Default::default();
+
+    if let Some("-l") = args.first().map(|s| s as &str) {
+        config.little_endian = true;
+    }
+
     if let Some(arg) = args.into_iter().skip(1).take(1).next() {
         let mut file = fs::File::open(&arg)?;
         println!(
             "================================= NBT Contents ================================="
         );
-        let blob = Blob::from_reader(&mut file)?;
+        let blob = Blob::from_reader(&mut file, &config)?;
         println!("{}", blob);
         println!(
             "============================== JSON Representation ============================="
