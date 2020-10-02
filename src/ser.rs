@@ -12,37 +12,39 @@ use raw;
 use error::{Error, Result};
 use serde::ser::Error as SerError;
 
+use crate::config::Config;
+
 /// Encode `value` in Named Binary Tag format to the given `io::Write`
 /// destination, with an optional header.
 #[inline]
-pub fn to_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>) -> Result<()>
+pub fn to_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>, config: Config) -> Result<()>
 where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
 {
-    let mut encoder = Encoder::new(dst, header);
+    let mut encoder = Encoder::new(dst, header, config);
     value.serialize(&mut encoder)
 }
 
 /// Encode `value` in Named Binary Tag format to the given `io::Write`
 /// destination, with an optional header.
-pub fn to_gzip_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>) -> Result<()>
+pub fn to_gzip_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>, config: Config) -> Result<()>
 where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
 {
-    let mut encoder = Encoder::new(GzEncoder::new(dst, Compression::default()), header);
+    let mut encoder = Encoder::new(GzEncoder::new(dst, Compression::default()), header, config);
     value.serialize(&mut encoder)
 }
 
 /// Encode `value` in Named Binary Tag format to the given `io::Write`
 /// destination, with an optional header.
-pub fn to_zlib_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>) -> Result<()>
+pub fn to_zlib_writer<'a, W, T>(dst: &mut W, value: &T, header: Option<&'a str>, config: Config) -> Result<()>
 where
     W: ?Sized + io::Write,
     T: ?Sized + ser::Serialize,
 {
-    let mut encoder = Encoder::new(ZlibEncoder::new(dst, Compression::default()), header);
+    let mut encoder = Encoder::new(ZlibEncoder::new(dst, Compression::default()), header, config);
     value.serialize(&mut encoder)
 }
 
@@ -53,6 +55,7 @@ where
 /// representable in NBT format (notably unsigned integers), so this encoder may
 /// return errors.
 pub struct Encoder<'a, W> {
+    config: Config,
     writer: W,
     header: Option<&'a str>,
 }
@@ -62,17 +65,17 @@ where
     W: io::Write,
 {
     /// Create an encoder with optional `header` from a given Writer.
-    pub fn new(writer: W, header: Option<&'a str>) -> Self {
-        Encoder { writer, header }
+    pub fn new(writer: W, header: Option<&'a str>, config: Config) -> Self {
+        Encoder { config, writer, header }
     }
 
     /// Write the NBT tag and an optional header to the underlying writer.
     #[inline]
     fn write_header(&mut self, tag: i8, header: Option<&str>) -> Result<()> {
-        raw::write_bare_byte(&mut self.writer, tag)?;
+        raw::write_bare_byte(&mut self.writer, tag, &self.config)?;
         match header {
-            None => raw::write_bare_short(&mut self.writer, 0).map_err(From::from),
-            Some(h) => raw::write_bare_string(&mut self.writer, h).map_err(From::from),
+            None => raw::write_bare_short(&mut self.writer, 0, &self.config).map_err(From::from),
+            Some(h) => raw::write_bare_string(&mut self.writer, h, &self.config).map_err(From::from),
         }
     }
 }
@@ -115,10 +118,10 @@ where
             // Write sigil for empty list or typed array, because SerializeSeq::serialize_element is never called
             if !array {
                 // For an empty list, write TAG_End as the tag type.
-                raw::write_bare_byte(&mut outer.writer, 0x00)?;
+                raw::write_bare_byte(&mut outer.writer, 0x00, &outer.config)?;
             }
             // Write list/array length
-            raw::write_bare_int(&mut outer.writer, length)?;
+            raw::write_bare_int(&mut outer.writer, length, &outer.config)?;
         }
         Ok(Compound {
             outer,
@@ -144,7 +147,7 @@ where
                 self.outer,
                 Option::<String>::None,
             ))?;
-            raw::write_bare_int(&mut self.outer.writer, self.length)?;
+            raw::write_bare_int(&mut self.outer.writer, self.length, &self.outer.config)?;
             self.sigil = true;
         }
         value.serialize(&mut InnerEncoder::from_outer(self.outer))
@@ -190,7 +193,7 @@ where
     }
 
     fn end(self) -> Result<()> {
-        raw::close_nbt(&mut self.outer.writer)
+        raw::close_nbt(&mut self.outer.writer, &self.outer.config)
     }
 }
 
@@ -225,7 +228,7 @@ where
     }
 
     fn end(self) -> Result<()> {
-        raw::close_nbt(&mut self.outer.writer)
+        raw::close_nbt(&mut self.outer.writer, &self.outer.config)
     }
 }
 
@@ -254,7 +257,7 @@ where
     fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
         let header = self.header; // Circumvent strange borrowing errors.
         self.write_header(0x0a, header)?;
-        raw::close_nbt(&mut self.writer).map_err(From::from)
+        raw::close_nbt(&mut self.writer, &self.config).map_err(From::from)
     }
 
     /// Serialize newtype structs by their underlying type. Note that this will
@@ -310,37 +313,37 @@ where
 
     #[inline]
     fn serialize_i8(self, value: i8) -> Result<()> {
-        raw::write_bare_byte(&mut self.outer.writer, value).map_err(From::from)
+        raw::write_bare_byte(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
     }
 
     #[inline]
     fn serialize_i16(self, value: i16) -> Result<()> {
-        raw::write_bare_short(&mut self.outer.writer, value).map_err(From::from)
+        raw::write_bare_short(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
     }
 
     #[inline]
     fn serialize_i32(self, value: i32) -> Result<()> {
-        raw::write_bare_int(&mut self.outer.writer, value).map_err(From::from)
+        raw::write_bare_int(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
     }
 
     #[inline]
     fn serialize_i64(self, value: i64) -> Result<()> {
-        raw::write_bare_long(&mut self.outer.writer, value).map_err(From::from)
+        raw::write_bare_long(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
     }
 
     #[inline]
     fn serialize_f32(self, value: f32) -> Result<()> {
-        raw::write_bare_float(&mut self.outer.writer, value).map_err(From::from)
+        raw::write_bare_float(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
     }
 
     #[inline]
     fn serialize_f64(self, value: f64) -> Result<()> {
-        raw::write_bare_double(&mut self.outer.writer, value).map_err(From::from)
+        raw::write_bare_double(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
     }
 
     #[inline]
     fn serialize_str(self, value: &str) -> Result<()> {
-        raw::write_bare_string(&mut self.outer.writer, value).map_err(From::from)
+        raw::write_bare_string(&mut self.outer.writer, value, &self.outer.config).map_err(From::from)
     }
 
     #[inline]
@@ -363,7 +366,7 @@ where
 
     #[inline]
     fn serialize_unit_struct(self, _name: &'static str) -> Result<()> {
-        raw::close_nbt(&mut self.outer.writer).map_err(From::from)
+        raw::close_nbt(&mut self.outer.writer, &self.outer.config).map_err(From::from)
     }
 
     #[inline]
@@ -453,7 +456,7 @@ where
     }
 
     fn serialize_str(self, value: &str) -> Result<()> {
-        raw::write_bare_string(&mut self.outer.writer, value)
+        raw::write_bare_string(&mut self.outer.writer, value, &self.outer.config)
     }
 }
 
@@ -474,7 +477,7 @@ where
 
     fn write_header(&mut self, tag: i8) -> Result<()> {
         use serde::Serialize;
-        raw::write_bare_byte(&mut self.outer.writer, tag)?;
+        raw::write_bare_byte(&mut self.outer.writer, tag, &self.outer.config)?;
         self.key
             .serialize(&mut MapKeyEncoder::from_outer(self.outer))
     }

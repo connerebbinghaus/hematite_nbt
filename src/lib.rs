@@ -6,6 +6,7 @@ extern crate flate2;
 
 /* Re-export the core API from submodules. */
 pub use blob::Blob;
+pub use config::Config;
 pub use error::{Error, Result};
 pub use value::Value;
 
@@ -27,6 +28,7 @@ pub use ser::{i32_array, i64_array, i8_array};
 pub use ser::{to_gzip_writer, to_writer, to_zlib_writer};
 
 mod blob;
+mod config;
 mod error;
 mod raw;
 mod value;

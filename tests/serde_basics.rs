@@ -17,10 +17,10 @@ where
 {
     let mut dst = Vec::with_capacity(bytes.len());
 
-    nbt::ser::to_writer(&mut dst, &nbt, name).expect("NBT serialization.");
+    nbt::ser::to_writer(&mut dst, &nbt, name, Default::default()).expect("NBT serialization.");
     assert_eq!(bytes, &dst[..]);
 
-    let read: T = nbt::de::from_reader(bytes).expect("NBT deserialization.");
+    let read: T = nbt::de::from_reader(bytes, Default::default()).expect("NBT deserialization.");
     assert_eq!(read, nbt);
 }
 
@@ -362,7 +362,7 @@ fn serialize_custom_serializer_array() {
 
     let mut dst = Vec::with_capacity(bytes.len());
 
-    nbt::ser::to_writer(&mut dst, &nbt, None).expect("NBT serialization.");
+    nbt::ser::to_writer(&mut dst, &nbt, None, Default::default()).expect("NBT serialization.");
     assert_eq!(bytes, &dst[..]);
 }
 
