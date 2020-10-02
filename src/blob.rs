@@ -33,7 +33,7 @@ use value::Value;
 ///
 /// // Write a compressed binary representation to a byte array.
 /// let mut dst = Vec::new();
-/// nbt.to_zlib_writer(&mut dst).unwrap();
+/// nbt.to_zlib_writer(&mut dst, &Default::default()).unwrap();
 /// ```
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Blob {

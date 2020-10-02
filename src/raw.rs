@@ -34,9 +34,9 @@ where
     W: io::Write,
 {
     if config.little_endian {
-        dst.write_i16::<BigEndian>(value).map_err(From::from)
-    } else {
         dst.write_i16::<LittleEndian>(value).map_err(From::from)
+    } else {
+        dst.write_i16::<BigEndian>(value).map_err(From::from)
     }
 }
 
